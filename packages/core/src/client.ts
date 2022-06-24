@@ -112,6 +112,15 @@ export interface MedplumClientOptions {
   cacheTime?: number;
 
   /**
+   * The length of time in milliseconds to delay requests for auto batching.
+   *
+   * Auto batching attempts to group multiple requests together into a single batch request.
+   *
+   * Default value is 0, which disables auto batching.
+   */
+  autoBatchTime?: number;
+
+  /**
    * Fetch implementation.
    *
    * Default is window.fetch (if available).
@@ -320,6 +329,14 @@ interface RequestCacheEntry {
   readonly value: ReadablePromise<any>;
 }
 
+interface AutoBatchEntry<T = any> {
+  readonly method: string;
+  readonly url: string;
+  readonly options: RequestInit;
+  readonly resolve: (value: T) => void;
+  readonly reject: (reason: any) => void;
+}
+
 /**
  * The MedplumClient class provides a client for the Medplum FHIR server.
  *
@@ -375,11 +392,15 @@ export class MedplumClient extends EventTarget {
   readonly #requestCache: LRUCache<RequestCacheEntry>;
   readonly #cacheTime: number;
   readonly #baseUrl: string;
+  readonly #fhirBaseUrl: string;
   readonly #clientId: string;
   readonly #authorizeUrl: string;
   readonly #tokenUrl: string;
   readonly #logoutUrl: string;
   readonly #onUnauthenticated?: () => void;
+  readonly #autoBatchTime: number;
+  readonly #autoBatchQueue: AutoBatchEntry[];
+  #autoBatchTimerId?: any;
   #accessToken?: string;
   #refreshToken?: string;
   #refreshPromise?: Promise<any>;
@@ -406,11 +427,14 @@ export class MedplumClient extends EventTarget {
     this.#requestCache = new LRUCache(options?.resourceCacheSize ?? DEFAULT_RESOURCE_CACHE_SIZE);
     this.#cacheTime = options?.cacheTime ?? DEFAULT_CACHE_TIME;
     this.#baseUrl = options?.baseUrl || DEFAULT_BASE_URL;
+    this.#fhirBaseUrl = this.#baseUrl + 'fhir/R4/';
     this.#clientId = options?.clientId || '';
     this.#authorizeUrl = options?.authorizeUrl || this.#baseUrl + 'oauth2/authorize';
     this.#tokenUrl = options?.tokenUrl || this.#baseUrl + 'oauth2/token';
     this.#logoutUrl = options?.logoutUrl || this.#baseUrl + 'oauth2/logout';
     this.#onUnauthenticated = options?.onUnauthenticated;
+    this.#autoBatchTime = options?.autoBatchTime ?? 0;
+    this.#autoBatchQueue = [];
 
     const activeLogin = this.getActiveLogin();
     if (activeLogin) {
@@ -484,9 +508,29 @@ export class MedplumClient extends EventTarget {
     if (cached) {
       return cached.value;
     }
-    const promise = new ReadablePromise(this.#request<T>('GET', url, options));
-    this.#setCacheEntry(url, promise);
-    return promise;
+
+    let promise: Promise<T>;
+
+    if (url.startsWith(this.#fhirBaseUrl) && this.#autoBatchTime > 0) {
+      promise = new Promise<T>((resolve, reject) => {
+        this.#autoBatchQueue.push({
+          method: 'GET',
+          url: (url as string).replace(this.#fhirBaseUrl, ''),
+          options,
+          resolve,
+          reject,
+        });
+        if (!this.#autoBatchTimerId) {
+          this.#autoBatchTimerId = setTimeout(() => this.#executeAutoBatch(), this.#autoBatchTime);
+        }
+      });
+    } else {
+      promise = this.#request<T>('GET', url, options);
+    }
+
+    const readablePromise = new ReadablePromise(promise);
+    this.#setCacheEntry(url, readablePromise);
+    return readablePromise;
   }
 
   /**
@@ -654,7 +698,7 @@ export class MedplumClient extends EventTarget {
    * @returns The well-formed FHIR URL.
    */
   fhirUrl(...path: string[]): URL {
-    return new URL(this.#baseUrl + 'fhir/R4/' + path.join('/'));
+    return new URL(this.#fhirBaseUrl + path.join('/'));
   }
 
   /**
@@ -1466,6 +1510,43 @@ export class MedplumClient extends EventTarget {
       throw obj;
     }
     return obj;
+  }
+
+  /**
+   * Executes a batch of requests that were automatically batched together.
+   */
+  async #executeAutoBatch(): Promise<void> {
+    // Get the current queue
+    const entries = [...this.#autoBatchQueue];
+
+    // Clear the queue
+    this.#autoBatchQueue.length = 0;
+
+    // Clear the timer
+    this.#autoBatchTimerId = undefined;
+
+    // Build the batch request
+    const batch: Bundle = {
+      resourceType: 'Bundle',
+      type: 'batch',
+      entry: entries.map((e) => ({
+        request: {
+          method: e.method,
+          url: e.url,
+        },
+        // resource: JSON.parse(e.options.body as string) as Resource,
+      })),
+    };
+
+    // Execute the batch request
+    const response = (await this.post('fhir/R4', batch)) as Bundle;
+
+    // Process the response
+    for (let i = 0; i < entries.length; i++) {
+      const entry = entries[i];
+      const responseEntry = response.entry?.[i];
+      entry.resolve(responseEntry?.resource);
+    }
   }
 
   /**

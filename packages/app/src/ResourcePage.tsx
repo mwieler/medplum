@@ -6,6 +6,7 @@ import {
   OperationOutcome,
   Questionnaire,
   Resource,
+  ResourceType,
   ServiceRequest,
 } from '@medplum/fhirtypes';
 import {
@@ -16,7 +17,6 @@ import {
   EncounterTimeline,
   ErrorBoundary,
   Form,
-  Loading,
   MedplumLink,
   PatientTimeline,
   QuestionnaireBuilder,
@@ -33,7 +33,7 @@ import {
   TextArea,
   useMedplum,
 } from '@medplum/react';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { BotEditor } from './BotEditor';
@@ -69,69 +69,43 @@ function getTabs(resourceType: string, questionnaires?: Bundle): string[] {
 }
 
 export function ResourcePage(): JSX.Element {
-  const navigate = useNavigate();
-  const { resourceType, id, tab } = useParams() as {
-    resourceType: string;
+  const { resourceType, id } = useParams() as {
+    resourceType: ResourceType;
     id: string;
-    tab: string;
   };
   const medplum = useMedplum();
-  const [loading, setLoading] = useState<boolean>(true);
-  const [value, setValue] = useState<Resource | undefined>();
-  const [historyBundle, setHistoryBundle] = useState<Bundle | undefined>();
-  const [questionnaires, setQuestionnaires] = useState<Bundle<Questionnaire>>();
+  const valueRequest = medplum.readResource(resourceType, id);
+  const historyRequest = medplum.readHistory(resourceType, id);
+  const questionnaireRequest = medplum.search('Questionnaire', 'subject-type=' + resourceType);
+  const value = valueRequest.read();
+  const historyBundle = historyRequest.read();
+  const questionnaires = questionnaireRequest.read();
+
+  return (
+    <ResourcePageBody
+      resourceType={resourceType}
+      id={id}
+      value={value}
+      historyBundle={historyBundle}
+      questionnaires={questionnaires}
+    />
+  );
+}
+
+interface ResourcePageBodyProps {
+  resourceType: ResourceType;
+  id: string;
+  value: Resource | undefined;
+  historyBundle: Bundle | undefined;
+  questionnaires: Bundle<Questionnaire> | undefined;
+}
+
+function ResourcePageBody(props: ResourcePageBodyProps): JSX.Element {
+  const { resourceType, id, value, historyBundle, questionnaires } = props;
+  const navigate = useNavigate();
+  const medplum = useMedplum();
+  const { tab } = useParams() as { tab: string };
   const [error, setError] = useState<OperationOutcome | undefined>();
-
-  const loadResource = useCallback(() => {
-    setError(undefined);
-    setLoading(true);
-
-    // Build a batch request
-    // 1) Read the resource
-    // 2) Read the history
-    // 3) Read any Questionnaires for the resource typ
-    const requestBundle: Bundle = {
-      resourceType: 'Bundle',
-      type: 'batch',
-      entry: [
-        {
-          request: {
-            method: 'GET',
-            url: `${resourceType}/${id}`,
-          },
-        },
-        {
-          request: {
-            method: 'GET',
-            url: `${resourceType}/${id}/_history`,
-          },
-        },
-        {
-          request: {
-            method: 'GET',
-            url: `Questionnaire?subject-type=${resourceType}`,
-          },
-        },
-      ],
-    };
-
-    return medplum
-      .post('fhir/R4', requestBundle)
-      .then((responseBundle: Bundle) => {
-        if (responseBundle.entry?.[0]?.response?.status !== '200') {
-          setError(responseBundle.entry?.[0]?.response as OperationOutcome);
-        } else {
-          setValue(responseBundle.entry?.[0]?.resource);
-          setHistoryBundle(responseBundle.entry?.[1]?.resource as Bundle);
-          setQuestionnaires(responseBundle.entry?.[2]?.resource as Bundle<Questionnaire>);
-        }
-        setLoading(false);
-      })
-      .catch((reason) => {
-        setError(reason);
-        setLoading(false);
-      });
-  }, [medplum, resourceType, id]);
 
   /**
    * Handles a tab change event.
@@ -153,7 +127,6 @@ export function ResourcePage(): JSX.Element {
   function onSubmit(newResource: Resource): void {
     medplum
       .updateResource(cleanResource(newResource))
-      .then(loadResource)
       .then(() => toast.success('Success'))
       .catch(setError);
   }
@@ -168,14 +141,6 @@ export function ResourcePage(): JSX.Element {
       orderDetail[0].text = status;
       onSubmit({ ...serviceRequest, orderDetail });
     }
-  }
-
-  useEffect(() => {
-    loadResource();
-  }, [loadResource]);
-
-  if (loading) {
-    return <Loading />;
   }
 
   if (!value || !historyBundle) {
