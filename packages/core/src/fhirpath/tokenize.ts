@@ -26,7 +26,7 @@ const STANDARD_UNITS = [
   'milliseconds',
 ];
 
-const TWO_CHAR_OPERATORS = ['!=', '!~', '<=', '>=', '{}'];
+const TWO_CHAR_OPERATORS = ['!=', '!~', '<=', '>=', '{}', '->'];
 
 class Tokenizer {
   readonly #str: string;
@@ -75,8 +75,8 @@ class Tokenizer {
       return this.#consumeSingleLineComment();
     }
 
-    if (c === "'") {
-      return this.#consumeString();
+    if (c === "'" || c === '"') {
+      return this.#consumeString(c);
     }
 
     if (c === '`') {
@@ -123,11 +123,11 @@ class Tokenizer {
     );
   }
 
-  #consumeString(): Token {
+  #consumeString(endChar: string): Token {
     this.#pos++;
     const result = buildToken(
       'String',
-      this.#consumeWhile(() => this.#prev() === '\\' || this.#curr() !== "'")
+      this.#consumeWhile(() => this.#prev() === '\\' || this.#curr() !== endChar)
     );
     this.#pos++;
     return result;

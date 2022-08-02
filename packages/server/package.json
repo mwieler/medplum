@@ -37,6 +37,7 @@
     "express-rate-limit": "6.5.2",
     "express-validator": "6.14.2",
     "fast-json-patch": "3.1.1",
+    "fast-xml-parser": "4.0.9",
     "graphql": "16.6.0",
     "hibp": "11.1.0",
     "ioredis": "4.28.5",
