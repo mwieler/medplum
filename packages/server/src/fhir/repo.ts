@@ -48,7 +48,6 @@ import { addBackgroundJobs } from '../workers';
 import { addSubscriptionJobs } from '../workers/subscription';
 import { validateResourceWithJsonSchema } from './jsonschema';
 import { AddressTable } from './lookups/address';
-import { ContactPointTable } from './lookups/contactpoint';
 import { HumanNameTable } from './lookups/humanname';
 import { LookupTable } from './lookups/lookuptable';
 import { TokenTable } from './lookups/token';
@@ -142,12 +141,7 @@ const protectedResourceTypes = ['JsonWebKey', 'Login', 'PasswordChangeRequest', 
 /**
  * The lookup tables array includes a list of special tables for search indexing.
  */
-const lookupTables: LookupTable[] = [
-  new AddressTable(),
-  new ContactPointTable(),
-  new HumanNameTable(),
-  new TokenTable(),
-];
+const lookupTables: LookupTable[] = [new AddressTable(), new HumanNameTable(), new TokenTable()];
 
 /**
  * Defines the maximum number of resources returned in a single search result.
