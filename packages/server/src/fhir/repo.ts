@@ -47,7 +47,11 @@ import { getRedis } from '../redis';
 import { addBackgroundJobs } from '../workers';
 import { addSubscriptionJobs } from '../workers/subscription';
 import { validateResourceWithJsonSchema } from './jsonschema';
-import { AddressTable, ContactPointTable, HumanNameTable, IdentifierTable, LookupTable } from './lookups';
+import { AddressTable } from './lookups/address';
+import { ContactPointTable } from './lookups/contactpoint';
+import { HumanNameTable } from './lookups/humanname';
+import { LookupTable } from './lookups/lookuptable';
+import { TokenTable } from './lookups/token';
 import { getPatientId } from './patient';
 import { rewriteAttachments, RewriteMode } from './rewrite';
 import { validateResource, validateResourceType } from './schema';
@@ -138,11 +142,11 @@ const protectedResourceTypes = ['JsonWebKey', 'Login', 'PasswordChangeRequest', 
 /**
  * The lookup tables array includes a list of special tables for search indexing.
  */
-const lookupTables: LookupTable<unknown>[] = [
+const lookupTables: LookupTable[] = [
   new AddressTable(),
   new ContactPointTable(),
   new HumanNameTable(),
-  new IdentifierTable(),
+  new TokenTable(),
 ];
 
 /**
@@ -795,7 +799,7 @@ export class Repository {
       return;
     }
 
-    const lookupTable = this.#getLookupTable(param);
+    const lookupTable = this.#getLookupTable(resourceType, param);
     if (lookupTable) {
       lookupTable.addWhere(selectQuery, predicate, filter);
       return;
@@ -935,7 +939,7 @@ export class Repository {
       return;
     }
 
-    const lookupTable = this.#getLookupTable(param);
+    const lookupTable = this.#getLookupTable(resourceType, param);
     if (lookupTable) {
       lookupTable.addOrderBy(builder, sortRule);
       return;
@@ -1031,7 +1035,11 @@ export class Repository {
    * @param searchParam The search parameter definition.
    */
   #buildColumn(resource: Resource, columns: Record<string, any>, searchParam: SearchParameter): void {
-    if (searchParam.code?.startsWith('_') || searchParam.type === 'composite' || this.#isIndexTable(searchParam)) {
+    if (
+      searchParam.code?.startsWith('_') ||
+      searchParam.type === 'composite' ||
+      this.#isIndexTable(resource.resourceType, searchParam)
+    ) {
       return;
     }
 
@@ -1233,13 +1241,13 @@ export class Repository {
     }
   }
 
-  #isIndexTable(searchParam: SearchParameter): boolean {
-    return !!this.#getLookupTable(searchParam);
+  #isIndexTable(resourceType: string, searchParam: SearchParameter): boolean {
+    return !!this.#getLookupTable(resourceType, searchParam);
   }
 
-  #getLookupTable(searchParam: SearchParameter): LookupTable<unknown> | undefined {
+  #getLookupTable(resourceType: string, searchParam: SearchParameter): LookupTable | undefined {
     for (const lookupTable of lookupTables) {
-      if (lookupTable.isIndexed(searchParam)) {
+      if (lookupTable.isIndexed(resourceType, searchParam)) {
         return lookupTable;
       }
     }

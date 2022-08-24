@@ -2,14 +2,14 @@ import { Filter, stringify } from '@medplum/core';
 import { ContactPoint, Resource, SearchParameter } from '@medplum/fhirtypes';
 import { randomUUID } from 'crypto';
 import { Column, Condition, Conjunction, Operator, SelectQuery } from '../sql';
-import { LookupTable } from './lookuptable';
+import { DefaultBaseLookupTable } from './defaultbaselookuptable';
 import { compareArrays } from './util';
 
 /**
  * The ContactPointTable class is used to index and search ContactPoint properties.
  * Each ContactPoint is represented as a separate row in the "ContactPoint" table.
  */
-export class ContactPointTable extends LookupTable<ContactPoint> {
+export class ContactPointTable extends DefaultBaseLookupTable<ContactPoint> {
   static readonly #knownParams: Set<string> = new Set<string>([
     'individual-telecom',
     'individual-email',
@@ -36,10 +36,11 @@ export class ContactPointTable extends LookupTable<ContactPoint> {
 
   /**
    * Returns true if the search parameter is an ContactPoint parameter.
+   * @param resourceType The resource type.
    * @param searchParam The search parameter.
    * @returns True if the search parameter is an ContactPoint parameter.
    */
-  isIndexed(searchParam: SearchParameter): boolean {
+  isIndexed(resourceType: string, searchParam: SearchParameter): boolean {
     return ContactPointTable.#knownParams.has(searchParam.id as string);
   }
 

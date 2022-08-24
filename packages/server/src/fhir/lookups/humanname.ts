@@ -1,14 +1,14 @@
 import { formatFamilyName, formatGivenName, formatHumanName, stringify } from '@medplum/core';
 import { HumanName, Resource, SearchParameter } from '@medplum/fhirtypes';
 import { randomUUID } from 'crypto';
-import { LookupTable } from './lookuptable';
+import { DefaultBaseLookupTable } from './defaultbaselookuptable';
 import { compareArrays } from './util';
 
 /**
  * The HumanNameTable class is used to index and search "name" properties on "Person" resources.
  * Each name is represented as a separate row in the "HumanName" table.
  */
-export class HumanNameTable extends LookupTable<HumanName> {
+export class HumanNameTable extends DefaultBaseLookupTable<HumanName> {
   static readonly #knownParams: Set<string> = new Set<string>([
     'individual-given',
     'individual-family',
@@ -36,10 +36,11 @@ export class HumanNameTable extends LookupTable<HumanName> {
 
   /**
    * Returns true if the search parameter is an HumanName parameter.
+   * @param resourceType The resource type.
    * @param searchParam The search parameter.
    * @returns True if the search parameter is an HumanName parameter.
    */
-  isIndexed(searchParam: SearchParameter): boolean {
+  isIndexed(resourceType: string, searchParam: SearchParameter): boolean {
     return HumanNameTable.#knownParams.has(searchParam.id as string);
   }
 

@@ -1,14 +1,14 @@
 import { formatAddress, stringify } from '@medplum/core';
 import { Address, Resource, SearchParameter } from '@medplum/fhirtypes';
 import { randomUUID } from 'crypto';
-import { LookupTable } from './lookuptable';
+import { DefaultBaseLookupTable } from './defaultbaselookuptable';
 import { compareArrays } from './util';
 
 /**
  * The AddressTable class is used to index and search Address properties.
  * Each Address is represented as a separate row in the "Address" table.
  */
-export class AddressTable extends LookupTable<Address> {
+export class AddressTable extends DefaultBaseLookupTable<Address> {
   static readonly #knownParams: Set<string> = new Set<string>([
     'individual-address',
     'individual-address-city',
@@ -65,10 +65,11 @@ export class AddressTable extends LookupTable<Address> {
 
   /**
    * Returns true if the search parameter is an Address parameter.
+   * @param resourceType The resource type.
    * @param searchParam The search parameter.
    * @returns True if the search parameter is an Address parameter.
    */
-  isIndexed(searchParam: SearchParameter): boolean {
+  isIndexed(resourceType: string, searchParam: SearchParameter): boolean {
     return AddressTable.#knownParams.has(searchParam.id as string);
   }
 
