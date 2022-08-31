@@ -93,27 +93,25 @@ export class AddressTable extends LookupTable<Address> {
         await this.deleteValuesForResource(resource);
       }
 
-      if (addresses.length > 0) {
-        const values = [];
+      const values = [];
 
-        for (let i = 0; i < addresses.length; i++) {
-          const address = addresses[i];
-          values.push({
-            id: randomUUID(),
-            resourceId,
-            index: i,
-            content: stringify(address),
-            address: formatAddress(address),
-            city: address.city?.trim(),
-            country: address.country?.trim(),
-            postalCode: address.postalCode?.trim(),
-            state: address.state?.trim(),
-            use: address.use?.trim(),
-          });
-        }
-
-        await this.insertValuesForResource(values);
+      for (let i = 0; i < addresses.length; i++) {
+        const address = addresses[i];
+        values.push({
+          id: randomUUID(),
+          resourceId,
+          index: i,
+          content: stringify(address),
+          address: formatAddress(address),
+          city: address.city?.trim(),
+          country: address.country?.trim(),
+          postalCode: address.postalCode?.trim(),
+          state: address.state?.trim(),
+          use: address.use?.trim(),
+        });
       }
+
+      await this.insertValuesForResource(values);
     }
   }
 

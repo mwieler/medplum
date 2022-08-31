@@ -107,6 +107,9 @@ export abstract class LookupTable<T> {
    * @param values The values to insert.
    */
   protected async insertValuesForResource(values: Record<string, any>[]): Promise<void> {
+    if (values.length === 0) {
+      return;
+    }
     const tableName = this.getTableName();
     const client = getClient();
     await new InsertQuery(tableName, values).execute(client);

@@ -72,23 +72,21 @@ export class TokenTable extends LookupTable<Token> {
         await this.deleteValuesForResource(resource);
       }
 
-      if (tokens.length > 0) {
-        const values = [];
+      const values = [];
 
-        for (let i = 0; i < tokens.length; i++) {
-          const token = tokens[i];
-          values.push({
-            id: randomUUID(),
-            resourceId,
-            code: token.code,
-            index: i,
-            system: token.system?.trim(),
-            value: token.value?.trim(),
-          });
-        }
-
-        await this.insertValuesForResource(values);
+      for (let i = 0; i < tokens.length; i++) {
+        const token = tokens[i];
+        values.push({
+          id: randomUUID(),
+          resourceId,
+          code: token.code,
+          index: i,
+          system: token.system?.trim(),
+          value: token.value?.trim(),
+        });
       }
+
+      await this.insertValuesForResource(values);
     }
   }
 

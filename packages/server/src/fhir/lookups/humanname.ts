@@ -73,24 +73,22 @@ export class HumanNameTable extends LookupTable<HumanName> {
         await this.deleteValuesForResource(resource);
       }
 
-      if (names.length > 0) {
-        const values = [];
+      const values = [];
 
-        for (let i = 0; i < names.length; i++) {
-          const name = names[i];
-          values.push({
-            id: randomUUID(),
-            resourceId,
-            index: i,
-            content: stringify(name),
-            name: formatHumanName(name),
-            given: formatGivenName(name),
-            family: formatFamilyName(name),
-          });
-        }
-
-        await this.insertValuesForResource(values);
+      for (let i = 0; i < names.length; i++) {
+        const name = names[i];
+        values.push({
+          id: randomUUID(),
+          resourceId,
+          index: i,
+          content: stringify(name),
+          name: formatHumanName(name),
+          given: formatGivenName(name),
+          family: formatFamilyName(name),
+        });
       }
+
+      await this.insertValuesForResource(values);
     }
   }
 }
