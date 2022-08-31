@@ -1241,7 +1241,7 @@ export class Repository {
 
   #getLookupTable(resourceType: string, searchParam: SearchParameter): LookupTable<unknown> | undefined {
     for (const lookupTable of lookupTables) {
-      if (lookupTable.isIndexed(resourceType, searchParam)) {
+      if (lookupTable.isIndexed(searchParam, resourceType)) {
         return lookupTable;
       }
     }

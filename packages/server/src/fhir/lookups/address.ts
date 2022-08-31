@@ -65,11 +65,10 @@ export class AddressTable extends LookupTable<Address> {
 
   /**
    * Returns true if the search parameter is an Address parameter.
-   * @param resourceType The resource type.
    * @param searchParam The search parameter.
    * @returns True if the search parameter is an Address parameter.
    */
-  isIndexed(resourceType: string, searchParam: SearchParameter): boolean {
+  isIndexed(searchParam: SearchParameter): boolean {
     return AddressTable.#knownParams.has(searchParam.id as string);
   }
 

@@ -26,12 +26,11 @@ export abstract class LookupTable<T> {
 
   /**
    * Determines if the search parameter is indexed by this index table.
-   * @param resourceType The resource type.
    * @param searchParam The search parameter.
    * @param resourceType The resource type.
    * @returns True if the search parameter is indexed.
    */
-  abstract isIndexed(resourceType: string, searchParam: SearchParameter): boolean;
+  abstract isIndexed(searchParam: SearchParameter, resourceType: string): boolean;
 
   /**
    * Indexes the resource in the lookup table.
