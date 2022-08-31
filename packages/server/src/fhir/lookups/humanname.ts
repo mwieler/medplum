@@ -1,14 +1,14 @@
 import { formatFamilyName, formatGivenName, formatHumanName, stringify } from '@medplum/core';
 import { HumanName, Resource, SearchParameter } from '@medplum/fhirtypes';
 import { randomUUID } from 'crypto';
-import { DefaultBaseLookupTable } from './defaultbaselookuptable';
+import { LookupTable } from './lookuptable';
 import { compareArrays } from './util';
 
 /**
  * The HumanNameTable class is used to index and search "name" properties on "Person" resources.
  * Each name is represented as a separate row in the "HumanName" table.
  */
-export class HumanNameTable extends DefaultBaseLookupTable<HumanName> {
+export class HumanNameTable extends LookupTable<HumanName> {
   static readonly #knownParams: Set<string> = new Set<string>([
     'individual-given',
     'individual-family',
@@ -73,22 +73,24 @@ export class HumanNameTable extends DefaultBaseLookupTable<HumanName> {
         await this.deleteValuesForResource(resource);
       }
 
-      const values = [];
+      if (names.length > 0) {
+        const values = [];
 
-      for (let i = 0; i < names.length; i++) {
-        const name = names[i];
-        values.push({
-          id: randomUUID(),
-          resourceId,
-          index: i,
-          content: stringify(name),
-          name: formatHumanName(name),
-          given: formatGivenName(name),
-          family: formatFamilyName(name),
-        });
+        for (let i = 0; i < names.length; i++) {
+          const name = names[i];
+          values.push({
+            id: randomUUID(),
+            resourceId,
+            index: i,
+            content: stringify(name),
+            name: formatHumanName(name),
+            given: formatGivenName(name),
+            family: formatFamilyName(name),
+          });
+        }
+
+        await this.insertValuesForResource(values);
       }
-
-      await this.insertValuesForResource(values);
     }
   }
 }

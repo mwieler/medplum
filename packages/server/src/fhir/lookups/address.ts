@@ -1,14 +1,14 @@
 import { formatAddress, stringify } from '@medplum/core';
 import { Address, Resource, SearchParameter } from '@medplum/fhirtypes';
 import { randomUUID } from 'crypto';
-import { DefaultBaseLookupTable } from './defaultbaselookuptable';
+import { LookupTable } from './lookuptable';
 import { compareArrays } from './util';
 
 /**
  * The AddressTable class is used to index and search Address properties.
  * Each Address is represented as a separate row in the "Address" table.
  */
-export class AddressTable extends DefaultBaseLookupTable<Address> {
+export class AddressTable extends LookupTable<Address> {
   static readonly #knownParams: Set<string> = new Set<string>([
     'individual-address',
     'individual-address-city',
@@ -93,25 +93,27 @@ export class AddressTable extends DefaultBaseLookupTable<Address> {
         await this.deleteValuesForResource(resource);
       }
 
-      const values = [];
+      if (addresses.length > 0) {
+        const values = [];
 
-      for (let i = 0; i < addresses.length; i++) {
-        const address = addresses[i];
-        values.push({
-          id: randomUUID(),
-          resourceId,
-          index: i,
-          content: stringify(address),
-          address: formatAddress(address),
-          city: address.city?.trim(),
-          country: address.country?.trim(),
-          postalCode: address.postalCode?.trim(),
-          state: address.state?.trim(),
-          use: address.use?.trim(),
-        });
+        for (let i = 0; i < addresses.length; i++) {
+          const address = addresses[i];
+          values.push({
+            id: randomUUID(),
+            resourceId,
+            index: i,
+            content: stringify(address),
+            address: formatAddress(address),
+            city: address.city?.trim(),
+            country: address.country?.trim(),
+            postalCode: address.postalCode?.trim(),
+            state: address.state?.trim(),
+            use: address.use?.trim(),
+          });
+        }
+
+        await this.insertValuesForResource(values);
       }
-
-      await this.insertValuesForResource(values);
     }
   }
 

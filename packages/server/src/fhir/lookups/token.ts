@@ -11,17 +11,7 @@ import {
 import { CodeableConcept, Coding, ContactPoint, Identifier, Resource, SearchParameter } from '@medplum/fhirtypes';
 import { randomUUID } from 'crypto';
 import { getClient } from '../../database';
-import {
-  Column,
-  Condition,
-  Conjunction,
-  DeleteQuery,
-  Disjunction,
-  Expression,
-  InsertQuery,
-  Operator,
-  SelectQuery,
-} from '../sql';
+import { Column, Condition, Conjunction, Disjunction, Expression, Operator, SelectQuery } from '../sql';
 import { getSearchParameters, getStructureDefinitions } from '../structure';
 import { LookupTable } from './lookuptable';
 import { compareArrays } from './util';
@@ -40,7 +30,23 @@ interface Token {
  * The common case for tokens is a "system" and "value" key/value pair.
  * Each token is represented as a separate row in the "Token" table.
  */
-export class TokenTable implements LookupTable {
+export class TokenTable extends LookupTable<Token> {
+  /**
+   * Returns the table name.
+   * @returns The table name.
+   */
+  getTableName(): string {
+    return TOKEN_TABLE_NAME;
+  }
+
+  /**
+   * Returns the column name for the value.
+   * @returns The column name.
+   */
+  getColumnName(): string {
+    return 'value';
+  }
+
   /**
    * Returns true if the search parameter is an "token" parameter.
    * @param searchParam The search parameter.
@@ -62,8 +68,6 @@ export class TokenTable implements LookupTable {
     const existing = await getExistingValues(resourceId);
 
     if (!compareArrays(tokens, existing)) {
-      const client = getClient();
-
       if (existing.length > 0) {
         await this.deleteValuesForResource(resource);
       }
@@ -83,7 +87,7 @@ export class TokenTable implements LookupTable {
           });
         }
 
-        await new InsertQuery(TOKEN_TABLE_NAME, values).execute(client);
+        await this.insertValuesForResource(values);
       }
     }
   }
@@ -126,16 +130,6 @@ export class TokenTable implements LookupTable {
       .orderBy('resourceId');
     selectQuery.join(joinName, 'id', 'resourceId', subQuery);
     selectQuery.orderBy(new Column(joinName, 'value'), sortRule.descending);
-  }
-
-  /**
-   * Deletes the resource from the lookup table.
-   * @param resource The resource to delete.
-   */
-  async deleteValuesForResource(resource: Resource): Promise<void> {
-    const resourceId = resource.id as string;
-    const client = getClient();
-    await new DeleteQuery(TOKEN_TABLE_NAME).where('resourceId', Operator.EQUALS, resourceId).execute(client);
   }
 }
 
