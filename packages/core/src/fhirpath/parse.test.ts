@@ -516,4 +516,24 @@ describe('FHIRPath parser', () => {
       },
     ]);
   });
+
+  test('Mapping language', () => {
+    const example = `
+    map "http://hl7.org/fhir/StructureMap/tutorial" = tutorial
+
+    uses "http://hl7.org/fhir/StructureDefinition/tutorial-left" as source
+    uses "http://hl7.org/fhir/StructureDefinition/tutorial-right" as target
+
+    group tutorial(source src : TLeft, target tgt : TRight) {
+
+    // rules go here
+    src.a as a -> tgt.a = a "rule_a";
+
+    }
+    `;
+
+    const atom = parseFhirPath(example);
+    // const tokens = tokenize(example);
+    console.log(JSON.stringify(atom, null, 2));
+  });
 });

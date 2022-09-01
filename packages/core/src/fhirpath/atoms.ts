@@ -320,3 +320,9 @@ export class IndexerAtom implements Atom {
     return [leftResult[index]];
   }
 }
+
+// FHIR Mapping Language atoms
+
+// export class MapAtom implements Atom {
+
+// }
