@@ -116,6 +116,15 @@ html[data-theme='dark'] .docusaurus-highlight-code-line {
   box-shadow: var(--ifm-navbar-shadow);
 }
 
+.page .navbar .DocSearch-Button {
+  background-color: transparent !important;
+  transition: all 200ms ease;
+}
+
+.page .navbar.onScroll .DocSearch-Button {
+  background-color: var(--docsearch-searchbox-background) !important;
+}
+
 h1 {
   font-style: normal;
   font-weight: 600;
